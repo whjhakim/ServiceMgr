@@ -1,10 +1,8 @@
 package ServiceApi;
 
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +11,12 @@ import java.util.concurrent.FutureTask;
 import java.util.HashMap;
 import Mongo.MongoApi;
 
+/**
+ *Sends request to the mongoDB to acquire the current value of each  monitorTarget of all 
+ *VNFs in all NSs.
+ *Sends the monitorTargets' value to the AlarmFormat to calculate the newest alarm value
+ * 
+ */
 public class Alarm implements Runnable{
 	//alarmInfoMap: <nsTypeId, alarmInfoList> . Each  list contains all the alarmId of this vnf
 	private Map<String,List<AlarmFormat>> alarmInfoMap = Collections.synchronizedMap(new HashMap<String, 
@@ -45,9 +49,6 @@ public class Alarm implements Runnable{
 	}
 
 	
-	/*
-	 * request all monitorTarges of all vnfs
-	 */
 	private void sendToMongDB() {
 		for(String nsTypeId : this.nsToVnf.keySet()) {
 			for(String vnf_nid : this.nsToVnf.get(nsTypeId)) {
@@ -104,8 +105,14 @@ public class Alarm implements Runnable{
 		}
 	}
 	
-	public JSONObject getAlarmsStatus(String vnf) {
-		List<AlarmFormat> alarmList = this.alarmInfoMap.get(vnf);
+	/*
+	 *an interface to get the NS's alarm values 
+	 *
+	 *@param nsTypeId
+	 * 
+	 */
+	public JSONObject getAlarmsStatus(String nsTypeId) {
+		List<AlarmFormat> alarmList = this.alarmInfoMap.get(nsTypeId);
 		JSONObject returnObj = new JSONObject();
 		for(AlarmFormat format : alarmList) {
 			String alarmId = format.getAlarmId();
@@ -115,6 +122,13 @@ public class Alarm implements Runnable{
 		return  returnObj;
 	}
 	
+	/*
+	 * an interface to add new NS's alarm
+	 * 
+	 * @param alarm the raw alarmInfo from the Slice O
+	 * @param targetToVnf : maps each VNF to related monitorTargets
+	 * 
+	 */
 	public void addAlarmInfo(JSONObject alarm,Map<String, List<String>> targetToVnf) {
 		String nsTypeId = alarm.getString("nsTypeId");
 		JSONObject alarmInfo = JSONObject.fromObject(alarm.get("alarmInfo"));
